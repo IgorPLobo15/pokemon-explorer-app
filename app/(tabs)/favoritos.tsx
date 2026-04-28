@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -8,10 +8,12 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useColorScheme,
   View,
 } from 'react-native';
 
 import { TypeBadge } from '@/components';
+import { appColors } from '@/constants/colors';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import type { Pokemon } from '@/types';
 
@@ -19,6 +21,8 @@ const capitalize = (value: string) =>
   value.length ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : value;
 
 export default function FavoritosScreen() {
+  const scheme = useColorScheme();
+  const colors = appColors[scheme === 'dark' ? 'dark' : 'light'];
   const favorites = useFavoritesStore((state) => state.favorites);
   const removeFavorite = useFavoritesStore((state) => state.removeFavorite);
   const loadFavorites = useFavoritesStore((state) => state.loadFavorites);
@@ -52,8 +56,8 @@ export default function FavoritosScreen() {
   };
 
   const renderFavoriteItem = ({ item }: { item: Pokemon }) => (
-    <View style={styles.card}>
-      <Image source={{ uri: item.image }} style={styles.image} resizeMode="contain" />
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <PokemonFavoriteImage imageUrl={item.image} />
 
       <View style={styles.infoWrapper}>
         <Text style={styles.name}>{capitalize(item.name)}</Text>
@@ -65,21 +69,21 @@ export default function FavoritosScreen() {
       </View>
 
       <Pressable
-        style={styles.removeButton}
+        style={[styles.removeButton, { backgroundColor: colors.dangerSoft }]}
         onPress={() => handleRemoveFavorite(item)}
         hitSlop={8}
       >
-        <Ionicons name="trash-outline" size={22} color="#E63946" />
+        <Ionicons name="trash-outline" size={22} color={colors.primary} />
       </Pressable>
     </View>
   );
 
   if (sortedFavorites.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
+      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
         <Text style={styles.emptyEmoji}>💛</Text>
-        <Text style={styles.emptyTitle}>Nenhum favorito ainda</Text>
-        <Text style={styles.emptySubtitle}>
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>Nenhum favorito ainda</Text>
+        <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
           Marque pokémons como favoritos na tela de Lista para vê-los aqui.
         </Text>
       </View>
@@ -87,10 +91,12 @@ export default function FavoritosScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Favoritos</Text>
-        <Text style={styles.headerCount}>{sortedFavorites.length} favoritos</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Favoritos</Text>
+        <Text style={[styles.headerCount, { color: colors.textMuted }]}>
+          {sortedFavorites.length} favoritos
+        </Text>
       </View>
 
       <FlatList
@@ -100,6 +106,40 @@ export default function FavoritosScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />
+    </View>
+  );
+}
+
+function PokemonFavoriteImage({ imageUrl }: { imageUrl: string }) {
+  const [loadingImage, setLoadingImage] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <View style={styles.imageWrapper}>
+      <Image
+        source={{ uri: imageUrl }}
+        style={styles.image}
+        resizeMode="contain"
+        onLoadStart={() => {
+          setLoadingImage(true);
+          setImageError(false);
+        }}
+        onLoadEnd={() => setLoadingImage(false)}
+        onError={() => {
+          setLoadingImage(false);
+          setImageError(true);
+        }}
+      />
+      {loadingImage && (
+        <View style={styles.imageOverlay}>
+          <Text style={styles.imagePlaceholder}>Carregando...</Text>
+        </View>
+      )}
+      {imageError && (
+        <View style={styles.imageOverlay}>
+          <Text style={styles.imageFallback}>🖼️</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -145,7 +185,14 @@ const styles = StyleSheet.create({
   image: {
     width: 80,
     height: 80,
+  },
+  imageWrapper: {
+    width: 80,
+    height: 80,
     marginRight: 12,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    overflow: 'hidden',
   },
   infoWrapper: {
     flex: 1,
@@ -189,8 +236,25 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 15,
-    color: '#6B7280',
     textAlign: 'center',
     lineHeight: 22,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(243,244,246,0.95)',
+  },
+  imagePlaceholder: {
+    color: '#6B7280',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  imageFallback: {
+    fontSize: 22,
   },
 });

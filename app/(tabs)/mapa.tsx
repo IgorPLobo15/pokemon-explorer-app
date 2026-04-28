@@ -7,9 +7,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useColorScheme,
   View,
 } from 'react-native';
 import MapView, { Callout, Marker, Region } from 'react-native-maps';
+import { appColors } from '@/constants/colors';
 
 type Coordinate = {
   latitude: number;
@@ -60,6 +62,8 @@ const generateRandomPins = (
 };
 
 export default function MapaScreen() {
+  const scheme = useColorScheme();
+  const colors = appColors[scheme === 'dark' ? 'dark' : 'light'];
   const mapRef = useRef<MapView | null>(null);
   const pinsRef = useRef<WildPokemonPin[]>([]);
   const lastFocusedPinIndexRef = useRef<number | null>(null);
@@ -135,23 +139,25 @@ export default function MapaScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#E63946" />
-        <Text style={styles.infoText}>Obtendo sua localização...</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.infoText, { color: colors.textMuted }]}>Obtendo sua localização...</Text>
       </View>
     );
   }
 
   if (error || !region) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorTitle}>Não foi possível abrir o mapa</Text>
-        <Text style={styles.errorText}>{error ?? 'Erro desconhecido de localização.'}</Text>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorTitle, { color: colors.text }]}>Não foi possível abrir o mapa</Text>
+        <Text style={[styles.errorText, { color: colors.textMuted }]}>
+          {error ?? 'Erro desconhecido de localização.'}
+        </Text>
 
         <View style={styles.buttonsRow}>
-          <Pressable style={styles.secondaryButton} onPress={() => void Linking.openSettings()}>
-            <Text style={styles.secondaryButtonText}>Abrir configurações</Text>
+          <Pressable style={[styles.secondaryButton, { backgroundColor: colors.border }]} onPress={() => void Linking.openSettings()}>
+            <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Abrir configurações</Text>
           </Pressable>
-          <Pressable style={styles.primaryButton} onPress={() => void loadLocationAndPins()}>
+          <Pressable style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={() => void loadLocationAndPins()}>
             <Text style={styles.primaryButtonText}>Tentar novamente</Text>
           </Pressable>
         </View>
@@ -160,7 +166,7 @@ export default function MapaScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
@@ -170,7 +176,7 @@ export default function MapaScreen() {
       >
         {pins.map((pin) => (
           <Marker key={pin.id} coordinate={pin.coordinate}>
-            <View style={styles.customMarker}>
+            <View style={[styles.customMarker, { borderColor: colors.primary }]}>
               <Text style={styles.markerIcon}>⚡</Text>
             </View>
             <Callout>

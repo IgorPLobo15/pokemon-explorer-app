@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useColorScheme,
   View,
 } from 'react-native';
 
@@ -15,11 +16,14 @@ import {
   PokemonCard,
   SearchBar,
 } from '@/components';
+import { appColors } from '@/constants/colors';
 import { usePokemonList } from '@/hooks/usePokemonList';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import type { Pokemon } from '@/types';
 
 export default function PokemonListScreen() {
+  const scheme = useColorScheme();
+  const colors = appColors[scheme === 'dark' ? 'dark' : 'light'];
   const { pokemons, loading, loadingMore, error, hasMore, loadMore, search } =
     usePokemonList();
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
@@ -53,17 +57,17 @@ export default function PokemonListScreen() {
   if (loading) {
     return (
       <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color="#E63946" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (error && pokemons.length === 0) {
     return (
-      <View style={styles.centeredContainer}>
-        <Text style={styles.errorTitle}>Ocorreu um erro</Text>
-        <Text style={styles.errorMessage}>{error}</Text>
-        <Pressable style={styles.retryButton} onPress={loadMore}>
+      <View style={[styles.centeredContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorTitle, { color: colors.text }]}>Ocorreu um erro</Text>
+        <Text style={[styles.errorMessage, { color: colors.textMuted }]}>{error}</Text>
+        <Pressable style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={loadMore}>
           <Text style={styles.retryButtonText}>Tentar novamente</Text>
         </Pressable>
       </View>
@@ -71,14 +75,14 @@ export default function PokemonListScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.headerRow}>
         <SearchBar value={searchQuery} onChangeText={handleSearchChange} />
         <Pressable
           style={styles.filterButton}
           onPress={() => setFilterModalVisible(true)}
         >
-          <Ionicons name="funnel-outline" size={20} color="#E63946" />
+          <Ionicons name="funnel-outline" size={20} color={colors.primary} />
         </Pressable>
       </View>
 
@@ -97,13 +101,19 @@ export default function PokemonListScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Nenhum pokémon encontrado</Text>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+              Nenhum pokémon encontrado
+            </Text>
           </View>
         }
         ListFooterComponent={
           hasMore ? (
             <Pressable
-              style={[styles.loadMoreButton, loadingMore && styles.loadMoreButtonDisabled]}
+              style={[
+                styles.loadMoreButton,
+                { backgroundColor: colors.primary },
+                loadingMore && styles.loadMoreButtonDisabled,
+              ]}
               onPress={loadMore}
               disabled={loadingMore}
             >

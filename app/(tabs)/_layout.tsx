@@ -1,23 +1,31 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { useColorScheme } from 'react-native';
+
+import { appColors } from '@/constants/colors';
+import { useFavoritesStore } from '@/store/useFavoritesStore';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
 export default function TabLayout() {
+  const scheme = useColorScheme();
+  const colors = appColors[scheme === 'dark' ? 'dark' : 'light'];
+  const favoritesCount = useFavoritesStore((state) => state.favorites.length);
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#E63946',
-        tabBarInactiveTintColor: '#9E9E9E',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.tabInactive,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.surface,
           borderTopWidth: 1,
-          borderTopColor: '#EEEEEE',
+          borderTopColor: colors.border,
         },
         headerStyle: {
-          backgroundColor: '#E63946',
+          backgroundColor: colors.headerBackground,
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: colors.headerText,
         headerTitleStyle: {
           fontWeight: 'bold',
         },
@@ -27,6 +35,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Lista',
+          headerTitle: 'Lista de Pokémons',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name={'list' as IoniconsName} size={size} color={color} />
           ),
@@ -36,8 +45,9 @@ export default function TabLayout() {
         name="mapa"
         options={{
           title: 'Mapa',
+          headerTitle: 'Mapa de Pokémons',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name={'map-outline' as IoniconsName} size={size} color={color} />
+            <Ionicons name={'map' as IoniconsName} size={size} color={color} />
           ),
         }}
       />
@@ -45,6 +55,12 @@ export default function TabLayout() {
         name="favoritos"
         options={{
           title: 'Favoritos',
+          headerTitle: 'Pokémons Favoritos',
+          tabBarBadge: favoritesCount > 0 ? favoritesCount : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.primary,
+            color: '#FFFFFF',
+          },
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name={'heart' as IoniconsName} size={size} color={color} />
           ),

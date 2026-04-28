@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -18,6 +19,9 @@ export function PokemonCard({
   isFavorite,
   onToggleFavorite,
 }: PokemonCardProps) {
+  const [loadingImage, setLoadingImage] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
   return (
     <View style={styles.card}>
       <Pressable
@@ -32,7 +36,32 @@ export function PokemonCard({
         />
       </Pressable>
 
-      <Image source={{ uri: pokemon.image }} style={styles.image} resizeMode="contain" />
+      <View style={styles.imageWrapper}>
+        <Image
+          source={{ uri: pokemon.image }}
+          style={styles.image}
+          resizeMode="contain"
+          onLoadStart={() => {
+            setLoadingImage(true);
+            setImageError(false);
+          }}
+          onLoadEnd={() => setLoadingImage(false)}
+          onError={() => {
+            setLoadingImage(false);
+            setImageError(true);
+          }}
+        />
+        {loadingImage && (
+          <View style={styles.imageOverlay}>
+            <Text style={styles.imagePlaceholder}>Carregando...</Text>
+          </View>
+        )}
+        {imageError && (
+          <View style={styles.imageOverlay}>
+            <Text style={styles.imageFallback}>🖼️</Text>
+          </View>
+        )}
+      </View>
 
       <Text style={styles.name}>{capitalize(pokemon.name)}</Text>
 
@@ -63,10 +92,17 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     padding: 4,
   },
-  image: {
+  imageWrapper: {
     width: '100%',
     height: 90,
     marginBottom: 8,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    overflow: 'hidden',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
   },
   name: {
     fontSize: 16,
@@ -78,5 +114,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 'auto',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(243,244,246,0.95)',
+  },
+  imagePlaceholder: {
+    color: '#6B7280',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  imageFallback: {
+    fontSize: 22,
   },
 });
