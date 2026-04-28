@@ -24,7 +24,7 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="lista"
+        name="index"
         options={{
           title: 'Lista',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
