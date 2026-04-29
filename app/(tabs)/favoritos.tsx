@@ -8,21 +8,22 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from 'react-native';
 
 import { TypeBadge } from '@/components';
-import { appColors } from '@/constants/colors';
+import { useAppColors } from '@/constants/colors';
+import { fonts } from '@/constants/typography';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import type { Pokemon } from '@/types';
+
+const TAB_BAR_OFFSET = 100;
 
 const capitalize = (value: string) =>
   value.length ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : value;
 
 export default function FavoritosScreen() {
-  const scheme = useColorScheme();
-  const colors = appColors[scheme === 'dark' ? 'dark' : 'light'];
+  const colors = useAppColors();
   const favorites = useFavoritesStore((state) => state.favorites);
   const removeFavorite = useFavoritesStore((state) => state.removeFavorite);
   const loadFavorites = useFavoritesStore((state) => state.loadFavorites);
@@ -56,11 +57,21 @@ export default function FavoritosScreen() {
   };
 
   const renderFavoriteItem = ({ item }: { item: Pokemon }) => (
-    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          shadowColor: colors.shadow,
+        },
+      ]}
+    >
       <PokemonFavoriteImage imageUrl={item.image} />
 
       <View style={styles.infoWrapper}>
-        <Text style={styles.name}>{capitalize(item.name)}</Text>
+        <Text style={[styles.name, { color: colors.text, fontFamily: fonts.title }]}>
+          {capitalize(item.name)}
+        </Text>
         <View style={styles.typesRow}>
           {item.types.map((pokemonType) => (
             <TypeBadge key={`${item.id}-${pokemonType.type.name}`} type={pokemonType.type.name} />
@@ -80,10 +91,17 @@ export default function FavoritosScreen() {
 
   if (sortedFavorites.length === 0) {
     return (
-      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.emptyContainer,
+          { backgroundColor: colors.background, paddingBottom: TAB_BAR_OFFSET },
+        ]}
+      >
         <Text style={styles.emptyEmoji}>💛</Text>
-        <Text style={[styles.emptyTitle, { color: colors.text }]}>Nenhum favorito ainda</Text>
-        <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
+        <Text style={[styles.emptyTitle, { color: colors.text, fontFamily: fonts.title }]}>
+          Nenhum favorito ainda
+        </Text>
+        <Text style={[styles.emptySubtitle, { color: colors.textMuted, fontFamily: fonts.body }]}>
           Marque pokémons como favoritos na tela de Lista para vê-los aqui.
         </Text>
       </View>
@@ -93,9 +111,12 @@ export default function FavoritosScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Favoritos</Text>
-        <Text style={[styles.headerCount, { color: colors.textMuted }]}>
-          {sortedFavorites.length} favoritos
+        <Text style={[styles.headerTitle, { color: colors.text, fontFamily: fonts.headline }]}>
+          Meus Favoritos
+        </Text>
+        <Text style={[styles.headerCount, { color: colors.textMuted, fontFamily: fonts.body }]}>
+          {sortedFavorites.length}{' '}
+          {sortedFavorites.length === 1 ? 'Pokémon' : 'Pokémons'}
         </Text>
       </View>
 
@@ -103,7 +124,7 @@ export default function FavoritosScreen() {
         data={sortedFavorites}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderFavoriteItem}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: TAB_BAR_OFFSET }]}
         showsVerticalScrollIndicator={false}
       />
     </View>
@@ -111,11 +132,12 @@ export default function FavoritosScreen() {
 }
 
 function PokemonFavoriteImage({ imageUrl }: { imageUrl: string }) {
+  const colors = useAppColors();
   const [loadingImage, setLoadingImage] = useState(true);
   const [imageError, setImageError] = useState(false);
 
   return (
-    <View style={styles.imageWrapper}>
+    <View style={[styles.imageWrapper, { backgroundColor: colors.surfaceContainer }]}>
       <Image
         source={{ uri: imageUrl }}
         style={styles.image}
@@ -132,7 +154,9 @@ function PokemonFavoriteImage({ imageUrl }: { imageUrl: string }) {
       />
       {loadingImage && (
         <View style={styles.imageOverlay}>
-          <Text style={styles.imagePlaceholder}>Carregando...</Text>
+          <Text style={[styles.imagePlaceholder, { color: colors.textMuted, fontFamily: fonts.labelCaps }]}>
+            Carregando...
+          </Text>
         </View>
       )}
       {imageError && (
@@ -147,51 +171,44 @@ function PokemonFavoriteImage({ imageUrl }: { imageUrl: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 8,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#111827',
+    fontSize: 28,
+    lineHeight: 34,
   },
   headerCount: {
-    marginTop: 2,
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
+    marginTop: 4,
+    fontSize: 16,
   },
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingHorizontal: 20,
+    gap: 0,
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 24,
     marginTop: 12,
     padding: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 16,
+    elevation: 3,
   },
   image: {
-    width: 80,
-    height: 80,
+    width: 72,
+    height: 72,
   },
   imageWrapper: {
-    width: 80,
-    height: 80,
-    marginRight: 12,
-    borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    width: 72,
+    height: 72,
+    marginRight: 14,
+    borderRadius: 14,
     overflow: 'hidden',
   },
   infoWrapper: {
@@ -199,9 +216,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   name: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
     marginBottom: 6,
   },
   typesRow: {
@@ -209,19 +225,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   removeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
-    backgroundColor: '#F3F4F6',
   },
   emptyEmoji: {
     fontSize: 44,
@@ -229,8 +243,6 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#111827',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -240,19 +252,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   imageOverlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(243,244,246,0.95)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
   },
   imagePlaceholder: {
-    color: '#6B7280',
     fontSize: 11,
-    fontWeight: '600',
   },
   imageFallback: {
     fontSize: 22,

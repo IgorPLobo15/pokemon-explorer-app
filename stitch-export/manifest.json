@@ -1,0 +1,40 @@
+{
+  "project": {
+    "title": "Redesign Interface PokeDex",
+    "id": "10390655100336692978"
+  },
+  "screens": [
+    {
+      "title": "Design System",
+      "id": "asset-stub-assets-3c36d00848a3451b929ae4fbaa7c4b29-1777418426634",
+      "assetId": "3c36d00848a3451b929ae4fbaa7c4b29",
+      "imageFile": null,
+      "codeFile": "stitch-export/design-system/design-system.md",
+      "notes": "O Stitch MCP nao expoe screenshot/html direto para asset-stub de design system."
+    },
+    {
+      "title": "Filtro por Tipo",
+      "id": "6349b382687345ce9a303b2e9092317e",
+      "imageFile": "stitch-export/screens/6349b382687345ce9a303b2e9092317e.png",
+      "codeFile": "stitch-export/screens/6349b382687345ce9a303b2e9092317e.html"
+    },
+    {
+      "title": "Mapa Pokemon",
+      "id": "a81924e9430f4bc7abb84fcbb6fdf16c",
+      "imageFile": "stitch-export/screens/a81924e9430f4bc7abb84fcbb6fdf16c.png",
+      "codeFile": "stitch-export/screens/a81924e9430f4bc7abb84fcbb6fdf16c.html"
+    },
+    {
+      "title": "Lista de Pokemon",
+      "id": "04def64e99ba4f6dba8cb7787f4d3fff",
+      "imageFile": "stitch-export/screens/04def64e99ba4f6dba8cb7787f4d3fff.png",
+      "codeFile": "stitch-export/screens/04def64e99ba4f6dba8cb7787f4d3fff.html"
+    },
+    {
+      "title": "Meus Favoritos",
+      "id": "624be9a0e6514f4a8632e8e4ee299626",
+      "imageFile": "stitch-export/screens/624be9a0e6514f4a8632e8e4ee299626.png",
+      "codeFile": "stitch-export/screens/624be9a0e6514f4a8632e8e4ee299626.html"
+    }
+  ]
+}

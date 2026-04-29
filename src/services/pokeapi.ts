@@ -23,6 +23,21 @@ interface PokemonDetailResponse {
   stats: PokemonStat[];
 }
 
+interface PokemonSpeciesResponse {
+  generation: {
+    name: string;
+  };
+  habitat: {
+    name: string;
+  } | null;
+  shape: {
+    name: string;
+  } | null;
+  is_legendary: boolean;
+  is_mythical: boolean;
+  is_baby: boolean;
+}
+
 export interface FetchPokemonListResult {
   count: number;
   next: string | null;
@@ -33,7 +48,10 @@ export interface FetchPokemonListResult {
 const getOfficialArtworkUrl = (id: number): string =>
   `${OFFICIAL_ARTWORK_BASE_URL}/${id}.png`;
 
-const mapPokemonDetailToPokemon = (detail: PokemonDetailResponse): Pokemon => {
+const mapPokemonDetailToPokemon = (
+  detail: PokemonDetailResponse,
+  species: PokemonSpeciesResponse
+): Pokemon => {
   return {
     id: detail.id,
     name: detail.name,
@@ -41,6 +59,12 @@ const mapPokemonDetailToPokemon = (detail: PokemonDetailResponse): Pokemon => {
     image: getOfficialArtworkUrl(detail.id),
     types: detail.types,
     stats: detail.stats,
+    generation: species.generation.name,
+    habitat: species.habitat?.name ?? null,
+    shape: species.shape?.name ?? null,
+    isLegendary: species.is_legendary,
+    isMythical: species.is_mythical,
+    isBaby: species.is_baby,
   };
 };
 
@@ -72,10 +96,15 @@ export const fetchPokemonList = async (
 export const fetchPokemonDetail = async (
   nameOrId: string | number
 ): Promise<Pokemon> => {
-  const response = await fetch(`${POKEAPI_BASE_URL}/${nameOrId}`);
-  ensureResponseOk(response, `buscar detalhes do pokemon ${nameOrId}`);
+  const detailResponse = await fetch(`${POKEAPI_BASE_URL}/${nameOrId}`);
+  ensureResponseOk(detailResponse, `buscar detalhes do pokemon ${nameOrId}`);
+  const detail = (await detailResponse.json()) as PokemonDetailResponse;
 
-  const data = (await response.json()) as PokemonDetailResponse;
+  const speciesResponse = await fetch(
+    `https://pokeapi.co/api/v2/pokemon-species/${detail.id}`
+  );
+  ensureResponseOk(speciesResponse, `buscar especie do pokemon ${nameOrId}`);
+  const species = (await speciesResponse.json()) as PokemonSpeciesResponse;
 
-  return mapPokemonDetailToPokemon(data);
+  return mapPokemonDetailToPokemon(detail, species);
 };

@@ -1,5 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
+
+import { useAppColors } from '@/constants/colors';
+import { fonts } from '@/constants/typography';
 
 interface SearchBarProps {
   value: string;
@@ -10,19 +14,33 @@ interface SearchBarProps {
 export function SearchBar({
   value,
   onChangeText,
-  placeholder = 'Buscar pokémon...',
+  placeholder = 'Buscar Pokémon...',
 }: SearchBarProps) {
+  const colors = useAppColors();
+  const [focused, setFocused] = useState(false);
+
   return (
-    <View style={styles.container}>
-      <Ionicons name="search" size={18} color="#6B7280" />
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.surfaceContainer,
+          borderColor: focused ? colors.secondary : 'transparent',
+          shadowColor: colors.shadow,
+        },
+      ]}
+    >
+      <Ionicons name="search" size={18} color={colors.textMuted} />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { color: colors.text, fontFamily: fonts.body }]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={colors.textMuted}
         autoCapitalize="none"
         autoCorrect={false}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
       />
     </View>
   );
@@ -32,18 +50,21 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 12,
-    height: 48,
+    borderRadius: 999,
+    borderWidth: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minHeight: 48,
     flex: 1,
-    gap: 8,
+    gap: 10,
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 2,
   },
   input: {
     flex: 1,
-    color: '#111827',
-    fontSize: 15,
+    fontSize: 16,
+    padding: 0,
   },
 });

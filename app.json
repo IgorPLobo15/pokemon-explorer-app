@@ -33,7 +33,8 @@
           "locationWhenInUsePermission": "Permite que o Pokemon Explorer acesse sua localização.",
           "locationAlwaysAndWhenInUsePermission": "Permite que o Pokemon Explorer acesse sua localização."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

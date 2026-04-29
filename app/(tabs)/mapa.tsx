@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
   Pressable,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from 'react-native';
 import MapView, { Callout, Marker, Region } from 'react-native-maps';
-import { appColors } from '@/constants/colors';
+
+import { useAppColors } from '@/constants/colors';
+import { fonts } from '@/constants/typography';
 
 type Coordinate = {
   latitude: number;
@@ -62,8 +64,7 @@ const generateRandomPins = (
 };
 
 export default function MapaScreen() {
-  const scheme = useColorScheme();
-  const colors = appColors[scheme === 'dark' ? 'dark' : 'light'];
+  const colors = useAppColors();
   const mapRef = useRef<MapView | null>(null);
   const pinsRef = useRef<WildPokemonPin[]>([]);
   const lastFocusedPinIndexRef = useRef<number | null>(null);
@@ -138,9 +139,11 @@ export default function MapaScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.infoText, { color: colors.textMuted }]}>Obtendo sua localização...</Text>
+        <Text style={[styles.infoText, { color: colors.textMuted, fontFamily: fonts.body }]}>
+          Obtendo sua localização...
+        </Text>
       </View>
     );
   }
@@ -148,17 +151,27 @@ export default function MapaScreen() {
   if (error || !region) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <Text style={[styles.errorTitle, { color: colors.text }]}>Não foi possível abrir o mapa</Text>
-        <Text style={[styles.errorText, { color: colors.textMuted }]}>
+        <Text style={[styles.errorTitle, { color: colors.text, fontFamily: fonts.title }]}>
+          Não foi possível abrir o mapa
+        </Text>
+        <Text style={[styles.errorText, { color: colors.textMuted, fontFamily: fonts.body }]}>
           {error ?? 'Erro desconhecido de localização.'}
         </Text>
 
         <View style={styles.buttonsRow}>
-          <Pressable style={[styles.secondaryButton, { backgroundColor: colors.border }]} onPress={() => void Linking.openSettings()}>
-            <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Abrir configurações</Text>
+          <Pressable
+            style={[styles.secondaryButton, { backgroundColor: colors.surfaceContainer }]}
+            onPress={() => void Linking.openSettings()}
+          >
+            <Text style={[styles.secondaryButtonText, { color: colors.text, fontFamily: fonts.bodyMedium }]}>
+              Abrir configurações
+            </Text>
           </Pressable>
-          <Pressable style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={() => void loadLocationAndPins()}>
-            <Text style={styles.primaryButtonText}>Tentar novamente</Text>
+          <Pressable
+            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+            onPress={() => void loadLocationAndPins()}
+          >
+            <Text style={[styles.primaryButtonText, { fontFamily: fonts.labelCaps }]}>Tentar novamente</Text>
           </Pressable>
         </View>
       </View>
@@ -175,14 +188,44 @@ export default function MapaScreen() {
         showsMyLocationButton
       >
         {pins.map((pin) => (
-          <Marker key={pin.id} coordinate={pin.coordinate}>
-            <View style={[styles.customMarker, { borderColor: colors.primary }]}>
-              <Text style={styles.markerIcon}>⚡</Text>
+          <Marker
+            key={pin.id}
+            coordinate={pin.coordinate}
+            anchor={{ x: 0.5, y: 0.5 }}
+            calloutAnchor={{ x: 0.5, y: 0 }}
+          >
+            <View
+              style={[
+                styles.customMarker,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.primary,
+                  shadowColor: colors.primary,
+                },
+              ]}
+            >
+              <Ionicons name="flash" size={18} color={colors.primary} />
             </View>
-            <Callout>
-              <View style={styles.calloutContent}>
-                <Text style={styles.calloutTitle}>{pin.title}</Text>
-                <Text style={styles.calloutDescription}>{pin.description}</Text>
+            <Callout tooltip>
+              <View style={styles.calloutWrapper}>
+                <View style={[styles.calloutContent, { backgroundColor: colors.surface }]}>
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.calloutTitle, { color: colors.text, fontFamily: fonts.title }]}
+                  >
+                    {pin.title}
+                  </Text>
+                  <Text
+                    numberOfLines={2}
+                    style={[
+                      styles.calloutDescription,
+                      { color: colors.textMuted, fontFamily: fonts.body },
+                    ]}
+                  >
+                    {pin.description}
+                  </Text>
+                </View>
+                <View style={[styles.calloutArrow, { borderTopColor: colors.surface }]} />
               </View>
             </Callout>
           </Marker>
@@ -195,81 +238,96 @@ export default function MapaScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
     paddingHorizontal: 24,
   },
   infoText: {
     marginTop: 10,
     fontSize: 15,
-    color: '#4B5563',
   },
   errorTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
     marginBottom: 8,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 14,
-    color: '#4B5563',
     textAlign: 'center',
     marginBottom: 16,
   },
   buttonsRow: {
     flexDirection: 'row',
     gap: 10,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   primaryButton: {
-    backgroundColor: '#E63946',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   primaryButtonText: {
     color: '#FFFFFF',
     fontWeight: '700',
+    fontSize: 13,
   },
   secondaryButton: {
-    backgroundColor: '#E5E7EB',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   secondaryButtonText: {
-    color: '#374151',
     fontWeight: '600',
+    fontSize: 14,
   },
   customMarker: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#E63946',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 4,
   },
-  markerIcon: {
-    fontSize: 16,
+  calloutWrapper: {
+    alignItems: 'center',
+    width: 240,
   },
   calloutContent: {
-    maxWidth: 180,
+    width: 240,
+    padding: 12,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 4,
   },
   calloutTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#111827',
     marginBottom: 4,
   },
   calloutDescription: {
     fontSize: 12,
-    color: '#4B5563',
+    lineHeight: 16,
+  },
+  calloutArrow: {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderTopWidth: 8,
+    borderRightWidth: 8,
+    borderLeftWidth: 8,
+    borderRightColor: 'transparent',
+    borderLeftColor: 'transparent',
+    marginTop: -1,
   },
 });

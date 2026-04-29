@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { fonts } from '@/constants/typography';
 import type { PokemonTypeName } from '@/types';
 
 const TYPE_COLORS: Record<PokemonTypeName, string> = {
@@ -52,8 +53,9 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#FFFFFF',
+    fontFamily: fonts.labelCaps,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     textTransform: 'capitalize',
   },
 });

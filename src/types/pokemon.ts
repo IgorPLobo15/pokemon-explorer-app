@@ -38,6 +38,12 @@ export interface Pokemon {
   image: string;
   types: PokemonType[];
   stats: PokemonStat[];
+  generation?: string;
+  habitat?: string | null;
+  shape?: string | null;
+  isLegendary?: boolean;
+  isMythical?: boolean;
+  isBaby?: boolean;
 }
 
 export interface FavoritePokemon extends Pokemon {
