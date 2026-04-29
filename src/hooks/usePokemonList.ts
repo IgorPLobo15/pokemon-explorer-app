@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { fetchPokemonDetail, fetchPokemonList } from '@/services/pokeapi';
+import {
+  fetchPokemonDetail,
+  fetchPokemonList,
+  type PokemonListItem,
+} from '@/services/pokeapi';
 import type { Pokemon } from '@/types';
 
 const PAGE_SIZE = 20;
@@ -12,7 +16,8 @@ interface UsePokemonListResult {
   error: string | null;
   hasMore: boolean;
   loadMore: () => Promise<void>;
-  search: (query: string) => void;
+  retry: () => Promise<void>;
+  search: (query: string) => Promise<void>;
 }
 
 export const usePokemonList = (): UsePokemonListResult => {
@@ -24,6 +29,8 @@ export const usePokemonList = (): UsePokemonListResult => {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const queryRef = useRef('');
+  const pokemonIndexRef = useRef<PokemonListItem[] | null>(null);
+  const searchRequestIdRef = useRef(0);
 
   const applySearch = useCallback((list: Pokemon[], value: string) => {
     const normalized = value.trim().toLowerCase();
@@ -73,12 +80,101 @@ export const usePokemonList = (): UsePokemonListResult => {
     await loadPage(offset, true, allPokemons);
   }, [allPokemons, hasMore, loadPage, loading, loadingMore, offset]);
 
+  const getPokemonIndex = useCallback(async (): Promise<PokemonListItem[]> => {
+    if (pokemonIndexRef.current) {
+      return pokemonIndexRef.current;
+    }
+
+    const indexResponse = await fetchPokemonList(0, 2000);
+    pokemonIndexRef.current = indexResponse.results;
+    return indexResponse.results;
+  }, []);
+
+  const retry = useCallback(async () => {
+    if (allPokemons.length > 0) {
+      await loadPage(offset, true, allPokemons);
+      return;
+    }
+    await loadPage(0, false, []);
+  }, [allPokemons, loadPage, offset]);
+
   const search = useCallback(
-    (value: string) => {
+    async (value: string) => {
+      const requestId = searchRequestIdRef.current + 1;
+      searchRequestIdRef.current = requestId;
       queryRef.current = value;
-      setVisiblePokemons(applySearch(allPokemons, value));
+
+      const normalized = value.trim().toLowerCase();
+      if (!normalized) {
+        setError(null);
+        setVisiblePokemons(allPokemons);
+        return;
+      }
+
+      const localMatches = applySearch(allPokemons, value);
+      setVisiblePokemons(localMatches);
+
+      try {
+        const pokemonIndex = await getPokemonIndex();
+        if (searchRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        const matchingNames = pokemonIndex
+          .map((item) => item.name)
+          .filter((name) => name.includes(normalized))
+          .slice(0, PAGE_SIZE);
+
+        if (matchingNames.length === 0) {
+          setVisiblePokemons([]);
+          setError(null);
+          return;
+        }
+
+        const existingByName = new Map(allPokemons.map((pokemon) => [pokemon.name, pokemon]));
+        const missingNames = matchingNames.filter((name) => !existingByName.has(name));
+
+        if (missingNames.length > 0) {
+          const fetchedDetails = await Promise.allSettled(
+            missingNames.map((name) => fetchPokemonDetail(name))
+          );
+          if (searchRequestIdRef.current !== requestId) {
+            return;
+          }
+
+          const successfulDetails = fetchedDetails.flatMap((result) =>
+            result.status === 'fulfilled' ? [result.value] : []
+          );
+          const mergedById = new Map<number, Pokemon>();
+          [...allPokemons, ...successfulDetails].forEach((pokemon) => {
+            mergedById.set(pokemon.id, pokemon);
+          });
+
+          const mergedList = Array.from(mergedById.values());
+          setAllPokemons(mergedList);
+
+          const mergedByName = new Map(mergedList.map((pokemon) => [pokemon.name, pokemon]));
+          const searchedList = matchingNames
+            .map((name) => mergedByName.get(name))
+            .filter((pokemon): pokemon is Pokemon => Boolean(pokemon));
+          setVisiblePokemons(searchedList);
+          setError(null);
+          return;
+        }
+
+        const searchedList = matchingNames
+          .map((name) => existingByName.get(name))
+          .filter((pokemon): pokemon is Pokemon => Boolean(pokemon));
+        setVisiblePokemons(searchedList);
+        setError(null);
+      } catch {
+        if (searchRequestIdRef.current !== requestId) {
+          return;
+        }
+        setError('Não foi possível concluir a busca global agora.');
+      }
     },
-    [allPokemons, applySearch]
+    [allPokemons, applySearch, getPokemonIndex]
   );
 
   useEffect(() => {
@@ -106,8 +202,9 @@ export const usePokemonList = (): UsePokemonListResult => {
       error,
       hasMore,
       loadMore,
+      retry,
       search,
     }),
-    [error, hasMore, loadMore, loading, loadingMore, search, visiblePokemons]
+    [error, hasMore, loadMore, loading, loadingMore, retry, search, visiblePokemons]
   );
 };

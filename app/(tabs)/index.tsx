@@ -36,7 +36,7 @@ const INITIAL_FILTERS: PokemonFilters = {
 
 export default function PokemonListScreen() {
   const colors = useAppColors();
-  const { pokemons, loading, loadingMore, error, hasMore, loadMore, search } =
+  const { pokemons, loading, loadingMore, error, hasMore, loadMore, retry, search } =
     usePokemonList();
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
 
@@ -119,7 +119,7 @@ export default function PokemonListScreen() {
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    search(value);
+    void search(value);
   };
 
   const handleToggleFavorite = async (pokemon: Pokemon) => {
@@ -149,7 +149,7 @@ export default function PokemonListScreen() {
         </Text>
         <Pressable
           style={[styles.retryButton, { backgroundColor: colors.primary }]}
-          onPress={loadMore}
+          onPress={() => void retry()}
         >
           <Text style={[styles.retryButtonText, { fontFamily: fonts.labelCaps }]}>Tentar novamente</Text>
         </Pressable>
@@ -229,26 +229,39 @@ export default function PokemonListScreen() {
           </View>
         }
         ListFooterComponent={
-          hasMore ? (
-            <Pressable
-              style={[
-                styles.loadMoreButton,
-                {
-                  backgroundColor: colors.primary,
-                  shadowColor: colors.primary,
-                },
-                loadingMore && styles.loadMoreButtonDisabled,
-              ]}
-              onPress={loadMore}
-              disabled={loadingMore}
-            >
-              {loadingMore ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={[styles.loadMoreText, { fontFamily: fonts.labelCaps }]}>Carregar mais</Text>
-              )}
-            </Pressable>
-          ) : null
+          <View style={styles.footerContainer}>
+            {error && pokemons.length > 0 ? (
+              <View style={[styles.inlineErrorContainer, { borderColor: colors.outlineVariant }]}>
+                <Text style={[styles.inlineErrorText, { color: colors.textMuted, fontFamily: fonts.body }]}>
+                  {error}
+                </Text>
+                <Pressable style={[styles.inlineRetryButton, { backgroundColor: colors.primary }]} onPress={() => void retry()}>
+                  <Text style={[styles.inlineRetryButtonText, { fontFamily: fonts.labelCaps }]}>Tentar de novo</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {hasMore ? (
+              <Pressable
+                style={[
+                  styles.loadMoreButton,
+                  {
+                    backgroundColor: colors.primary,
+                    shadowColor: colors.primary,
+                  },
+                  loadingMore && styles.loadMoreButtonDisabled,
+                ]}
+                onPress={loadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={[styles.loadMoreText, { fontFamily: fonts.labelCaps }]}>Carregar mais</Text>
+                )}
+              </Pressable>
+            ) : null}
+          </View>
         }
       />
 
@@ -353,6 +366,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
     elevation: 4,
+  },
+  footerContainer: {
+    marginTop: 12,
+  },
+  inlineErrorContainer: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+    gap: 8,
+  },
+  inlineErrorText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  inlineRetryButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  inlineRetryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   loadMoreButtonDisabled: {
     opacity: 0.75,

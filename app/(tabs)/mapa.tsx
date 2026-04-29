@@ -68,11 +68,34 @@ export default function MapaScreen() {
   const mapRef = useRef<MapView | null>(null);
   const pinsRef = useRef<WildPokemonPin[]>([]);
   const lastFocusedPinIndexRef = useRef<number | null>(null);
+  const isFocusedRef = useRef(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [region, setRegion] = useState<Region | null>(null);
   const [pins, setPins] = useState<WildPokemonPin[]>([]);
+
+  const zoomToRandomPin = useCallback(() => {
+    if (!mapRef.current || pinsRef.current.length === 0) {
+      return;
+    }
+
+    let randomIndex = Math.floor(Math.random() * pinsRef.current.length);
+    if (pinsRef.current.length > 1 && randomIndex === lastFocusedPinIndexRef.current) {
+      randomIndex = (randomIndex + 1) % pinsRef.current.length;
+    }
+    lastFocusedPinIndexRef.current = randomIndex;
+
+    const targetPin = pinsRef.current[randomIndex];
+    mapRef.current.animateToRegion(
+      {
+        ...targetPin.coordinate,
+        latitudeDelta: DEFAULT_DELTA.latitudeDelta / 1.5,
+        longitudeDelta: DEFAULT_DELTA.longitudeDelta / 1.5,
+      },
+      800
+    );
+  }, []);
 
   const loadLocationAndPins = useCallback(async () => {
     setLoading(true);
@@ -102,12 +125,16 @@ export default function MapaScreen() {
         pinsRef.current = generateRandomPins(center, PINS_COUNT, RADIUS_KM);
       }
       setPins(pinsRef.current);
+
+      if (isFocusedRef.current) {
+        requestAnimationFrame(() => zoomToRandomPin());
+      }
     } catch {
       setError('Não foi possível carregar sua localização no momento.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [zoomToRandomPin]);
 
   useEffect(() => {
     void loadLocationAndPins();
@@ -115,26 +142,13 @@ export default function MapaScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!mapRef.current || pinsRef.current.length === 0) {
-        return;
-      }
+      isFocusedRef.current = true;
+      zoomToRandomPin();
 
-      let randomIndex = Math.floor(Math.random() * pinsRef.current.length);
-      if (pinsRef.current.length > 1 && randomIndex === lastFocusedPinIndexRef.current) {
-        randomIndex = (randomIndex + 1) % pinsRef.current.length;
-      }
-      lastFocusedPinIndexRef.current = randomIndex;
-
-      const targetPin = pinsRef.current[randomIndex];
-      mapRef.current.animateToRegion(
-        {
-          ...targetPin.coordinate,
-          latitudeDelta: DEFAULT_DELTA.latitudeDelta / 1.5,
-          longitudeDelta: DEFAULT_DELTA.longitudeDelta / 1.5,
-        },
-        800
-      );
-    }, [])
+      return () => {
+        isFocusedRef.current = false;
+      };
+    }, [zoomToRandomPin])
   );
 
   if (loading) {

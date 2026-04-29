@@ -45,6 +45,8 @@ export interface FetchPokemonListResult {
   results: PokemonListItemResponse[];
 }
 
+export type PokemonListItem = PokemonListItemResponse;
+
 const getOfficialArtworkUrl = (id: number): string =>
   `${OFFICIAL_ARTWORK_BASE_URL}/${id}.png`;
 
