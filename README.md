@@ -16,6 +16,22 @@ Além disso, a interface inclui:
 - tema com suporte a modo claro/escuro
 - tratamento de imagem com placeholder e fallback
 
+## Capturas de tela
+
+Referência visual (export Stitch): tema escuro, navegação por abas e fluxos principais.
+
+### Lista (`listagem.jpeg`)
+
+![Lista — busca, filtros e grade de Pokémons](stitch-export/screens/listagem.jpeg)
+
+### Favoritos (`favoritos.jpeg`)
+
+![Favoritos — lista persistida com tipos e remoção](stitch-export/screens/favoritos.jpeg)
+
+### Mapa (`mapa.jpeg`)
+
+![Mapa — localização e pins próximos ao usuário](stitch-export/screens/mapa.jpeg)
+
 ## Tech Stack
 
 - **Expo + React Native + TypeScript**
