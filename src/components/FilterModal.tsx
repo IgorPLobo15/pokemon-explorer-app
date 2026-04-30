@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAppColors } from '@/constants/colors';
@@ -23,6 +24,7 @@ interface FilterModalProps {
   filters: PokemonFilters;
   types: PokemonTypeName[];
   options: FilterModalOptions;
+  resultCount: number;
   onChangeFilters: (filters: PokemonFilters) => void;
   onClear: () => void;
   onClose: () => void;
@@ -36,11 +38,15 @@ export function FilterModal({
   filters,
   types,
   options,
+  resultCount,
   onChangeFilters,
   onClear,
   onClose,
 }: FilterModalProps) {
   const colors = useAppColors();
+
+  const hasActiveFilters =
+    filters.type || filters.generation || filters.habitat || filters.shape || filters.special;
 
   const renderChip = (
     label: string,
@@ -64,7 +70,7 @@ export function FilterModal({
         style={[
           styles.chipText,
           { color: colors.text, fontFamily: fonts.bodyMedium },
-          selected && { color: colors.primary, fontFamily: fonts.labelCaps },
+          selected && { color: colors.primary, fontWeight: '700' },
         ]}
       >
         {label}
@@ -73,12 +79,32 @@ export function FilterModal({
   );
 
   return (
-    <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
-      <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.45)' }]}>
+    <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <Pressable style={styles.overlayTapArea} onPress={onClose} />
         <View style={[styles.container, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.title, { color: colors.text, fontFamily: fonts.title }]}>Filtros</Text>
+          <View style={styles.handleBar}>
+            <View style={[styles.handle, { backgroundColor: colors.outlineVariant }]} />
+          </View>
 
-          <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+          <View style={styles.titleRow}>
+            <Text style={[styles.title, { color: colors.text, fontFamily: fonts.title }]}>
+              Filtros
+            </Text>
+            {hasActiveFilters ? (
+              <Pressable onPress={onClear} hitSlop={8}>
+                <Text style={[styles.clearText, { color: colors.primary, fontFamily: fonts.bodyMedium }]}>
+                  Limpar tudo
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          <ScrollView
+            style={styles.scrollArea}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
             <Text style={[styles.sectionTitle, { color: colors.textMuted, fontFamily: fonts.labelCaps }]}>
               Tipo
             </Text>
@@ -88,71 +114,95 @@ export function FilterModal({
                 renderChip(
                   formatFilterValue(type),
                   filters.type === type,
-                  () => onChangeFilters({ ...filters, type }),
+                  () => onChangeFilters({ ...filters, type: filters.type === type ? null : type }),
                   `type-${type}`
                 )
               )}
             </View>
 
-            <Text style={[styles.sectionTitle, { color: colors.textMuted, fontFamily: fonts.labelCaps }]}>
-              Geração
-            </Text>
-            <View style={styles.chipsContainer}>
-              {renderChip(
-                'Todas',
-                !filters.generation,
-                () => onChangeFilters({ ...filters, generation: null }),
-                'generation-all'
-              )}
-              {options.generations.map((generation) =>
-                renderChip(
-                  formatFilterValue(generation),
-                  filters.generation === generation,
-                  () => onChangeFilters({ ...filters, generation }),
-                  `generation-${generation}`
-                )
-              )}
-            </View>
+            {options.generations.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { color: colors.textMuted, fontFamily: fonts.labelCaps }]}>
+                  Geração
+                </Text>
+                <View style={styles.chipsContainer}>
+                  {renderChip(
+                    'Todas',
+                    !filters.generation,
+                    () => onChangeFilters({ ...filters, generation: null }),
+                    'gen-all'
+                  )}
+                  {options.generations.map((generation) =>
+                    renderChip(
+                      formatFilterValue(generation),
+                      filters.generation === generation,
+                      () =>
+                        onChangeFilters({
+                          ...filters,
+                          generation: filters.generation === generation ? null : generation,
+                        }),
+                      `gen-${generation}`
+                    )
+                  )}
+                </View>
+              </>
+            )}
 
-            <Text style={[styles.sectionTitle, { color: colors.textMuted, fontFamily: fonts.labelCaps }]}>
-              Habitat
-            </Text>
-            <View style={styles.chipsContainer}>
-              {renderChip(
-                'Todos',
-                !filters.habitat,
-                () => onChangeFilters({ ...filters, habitat: null }),
-                'habitat-all'
-              )}
-              {options.habitats.map((habitat) =>
-                renderChip(
-                  formatFilterValue(habitat),
-                  filters.habitat === habitat,
-                  () => onChangeFilters({ ...filters, habitat }),
-                  `habitat-${habitat}`
-                )
-              )}
-            </View>
+            {options.habitats.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { color: colors.textMuted, fontFamily: fonts.labelCaps }]}>
+                  Habitat
+                </Text>
+                <View style={styles.chipsContainer}>
+                  {renderChip(
+                    'Todos',
+                    !filters.habitat,
+                    () => onChangeFilters({ ...filters, habitat: null }),
+                    'hab-all'
+                  )}
+                  {options.habitats.map((habitat) =>
+                    renderChip(
+                      formatFilterValue(habitat),
+                      filters.habitat === habitat,
+                      () =>
+                        onChangeFilters({
+                          ...filters,
+                          habitat: filters.habitat === habitat ? null : habitat,
+                        }),
+                      `hab-${habitat}`
+                    )
+                  )}
+                </View>
+              </>
+            )}
 
-            <Text style={[styles.sectionTitle, { color: colors.textMuted, fontFamily: fonts.labelCaps }]}>
-              Forma
-            </Text>
-            <View style={styles.chipsContainer}>
-              {renderChip(
-                'Todas',
-                !filters.shape,
-                () => onChangeFilters({ ...filters, shape: null }),
-                'shape-all'
-              )}
-              {options.shapes.map((shape) =>
-                renderChip(
-                  formatFilterValue(shape),
-                  filters.shape === shape,
-                  () => onChangeFilters({ ...filters, shape }),
-                  `shape-${shape}`
-                )
-              )}
-            </View>
+            {options.shapes.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { color: colors.textMuted, fontFamily: fonts.labelCaps }]}>
+                  Forma
+                </Text>
+                <View style={styles.chipsContainer}>
+                  {renderChip(
+                    'Todas',
+                    !filters.shape,
+                    () => onChangeFilters({ ...filters, shape: null }),
+                    'shape-all'
+                  )}
+                  {options.shapes.map((shape) =>
+                    renderChip(
+                      formatFilterValue(shape),
+                      filters.shape === shape,
+                      () =>
+                        onChangeFilters({
+                          ...filters,
+                          shape: filters.shape === shape ? null : shape,
+                        }),
+                      `shape-${shape}`
+                    )
+                  )}
+                </View>
+              </>
+            )}
 
             <Text style={[styles.sectionTitle, { color: colors.textMuted, fontFamily: fonts.labelCaps }]}>
               Especial
@@ -167,42 +217,45 @@ export function FilterModal({
               {renderChip(
                 'Lendário',
                 filters.special === 'legendary',
-                () => onChangeFilters({ ...filters, special: 'legendary' }),
+                () =>
+                  onChangeFilters({
+                    ...filters,
+                    special: filters.special === 'legendary' ? null : 'legendary',
+                  }),
                 'special-legendary'
               )}
               {renderChip(
                 'Mítico',
                 filters.special === 'mythical',
-                () => onChangeFilters({ ...filters, special: 'mythical' }),
+                () =>
+                  onChangeFilters({
+                    ...filters,
+                    special: filters.special === 'mythical' ? null : 'mythical',
+                  }),
                 'special-mythical'
               )}
               {renderChip(
                 'Bebê',
                 filters.special === 'baby',
-                () => onChangeFilters({ ...filters, special: 'baby' }),
+                () =>
+                  onChangeFilters({
+                    ...filters,
+                    special: filters.special === 'baby' ? null : 'baby',
+                  }),
                 'special-baby'
               )}
             </View>
           </ScrollView>
 
-          <View style={styles.actionsRow}>
-            <Pressable
-              style={[styles.secondaryButton, { backgroundColor: colors.surfaceContainer }]}
-              onPress={onClear}
-            >
-              <Text style={[styles.secondaryButtonText, { color: colors.text, fontFamily: fonts.bodyMedium }]}>
-                Limpar
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-              onPress={onClose}
-            >
-              <Text style={[styles.primaryButtonText, { fontFamily: fonts.labelCaps }]}>
-                Fechar
-              </Text>
-            </Pressable>
-          </View>
+          <Pressable
+            style={[styles.applyButton, { backgroundColor: colors.primary }]}
+            onPress={onClose}
+          >
+            <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+            <Text style={[styles.applyButtonText, { fontFamily: fonts.labelCaps }]}>
+              Mostrar {resultCount} {resultCount === 1 ? 'resultado' : 'resultados'}
+            </Text>
+          </Pressable>
         </View>
       </View>
     </Modal>
@@ -212,40 +265,64 @@ export function FilterModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
+    justifyContent: 'flex-end',
+  },
+  overlayTapArea: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
   container: {
-    borderRadius: 24,
-    padding: 20,
-    maxHeight: '85%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    maxHeight: '80%',
     shadowColor: '#000',
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
+    shadowOffset: { width: 0, height: -8 },
+    elevation: 12,
+  },
+  handleBar: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   title: {
-    fontSize: 18,
-    marginBottom: 10,
+    fontSize: 20,
+  },
+  clearText: {
+    fontSize: 14,
   },
   scrollArea: {
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 12,
-    marginTop: 8,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    marginTop: 12,
     marginBottom: 8,
   },
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   chip: {
     borderWidth: 1,
     borderRadius: 999,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     marginRight: 8,
     marginBottom: 8,
@@ -254,27 +331,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textTransform: 'capitalize',
   },
-  actionsRow: {
+  applyButton: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 52,
+    borderRadius: 16,
+    gap: 8,
   },
-  secondaryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  secondaryButtonText: {
-    fontWeight: '600',
-  },
-  primaryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  primaryButtonText: {
+  applyButtonText: {
     color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13,
+    fontSize: 14,
+    letterSpacing: 0.8,
   },
 });

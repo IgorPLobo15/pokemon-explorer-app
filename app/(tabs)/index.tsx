@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -34,8 +36,12 @@ const INITIAL_FILTERS: PokemonFilters = {
   special: null,
 };
 
+const formatFilterValue = (value: string) =>
+  value.replace(/-/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+
 export default function PokemonListScreen() {
   const colors = useAppColors();
+  const headerHeight = useHeaderHeight();
   const { pokemons, loading, loadingMore, error, hasMore, loadMore, retry, search } =
     usePokemonList();
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
@@ -46,61 +52,36 @@ export default function PokemonListScreen() {
 
   const displayedPokemons = useMemo(() => {
     return pokemons.filter((pokemon) => {
-      const matchesType = !filters.type || pokemon.types.some((item) => item.type.name === filters.type);
-      const matchesGeneration = !filters.generation || pokemon.generation === filters.generation;
-      const matchesHabitat = !filters.habitat || pokemon.habitat === filters.habitat;
-      const matchesShape = !filters.shape || pokemon.shape === filters.shape;
-      const matchesSpecial =
-        !filters.special ||
-        (filters.special === 'legendary' && pokemon.isLegendary) ||
-        (filters.special === 'mythical' && pokemon.isMythical) ||
-        (filters.special === 'baby' && pokemon.isBaby);
-
-      return (
-        matchesType &&
-        matchesGeneration &&
-        matchesHabitat &&
-        matchesShape &&
-        matchesSpecial
-      );
+      if (filters.type && !pokemon.types.some((item) => item.type.name === filters.type)) return false;
+      if (filters.generation && pokemon.generation !== filters.generation) return false;
+      if (filters.habitat && pokemon.habitat !== filters.habitat) return false;
+      if (filters.shape && pokemon.shape !== filters.shape) return false;
+      if (filters.special === 'legendary' && !pokemon.isLegendary) return false;
+      if (filters.special === 'mythical' && !pokemon.isMythical) return false;
+      if (filters.special === 'baby' && !pokemon.isBaby) return false;
+      return true;
     });
   }, [filters, pokemons]);
 
-  const activeFiltersCount = useMemo(() => {
-    return (
-      (filters.type ? 1 : 0) +
-      (filters.generation ? 1 : 0) +
-      (filters.habitat ? 1 : 0) +
-      (filters.shape ? 1 : 0) +
-      (filters.special ? 1 : 0)
-    );
+  const activeFilterChips = useMemo(() => {
+    const chips: { key: keyof PokemonFilters; label: string }[] = [];
+    if (filters.type) chips.push({ key: 'type', label: formatFilterValue(filters.type) });
+    if (filters.generation) chips.push({ key: 'generation', label: formatFilterValue(filters.generation) });
+    if (filters.habitat) chips.push({ key: 'habitat', label: formatFilterValue(filters.habitat) });
+    if (filters.shape) chips.push({ key: 'shape', label: formatFilterValue(filters.shape) });
+    if (filters.special) {
+      const specialLabels = { legendary: 'Lendário', mythical: 'Mítico', baby: 'Bebê' } as const;
+      chips.push({ key: 'special', label: specialLabels[filters.special] });
+    }
+    return chips;
   }, [filters]);
 
-  const activeFilterLabels = useMemo(() => {
-    const labels: string[] = [];
-    if (filters.type) {
-      labels.push(`Tipo: ${filters.type}`);
-    }
-    if (filters.generation) {
-      labels.push(`Geração: ${filters.generation.replace(/-/g, ' ')}`);
-    }
-    if (filters.habitat) {
-      labels.push(`Habitat: ${filters.habitat.replace(/-/g, ' ')}`);
-    }
-    if (filters.shape) {
-      labels.push(`Forma: ${filters.shape.replace(/-/g, ' ')}`);
-    }
-    if (filters.special) {
-      const specialLabel =
-        filters.special === 'legendary'
-          ? 'Lendário'
-          : filters.special === 'mythical'
-            ? 'Mítico'
-            : 'Bebê';
-      labels.push(`Especial: ${specialLabel}`);
-    }
-    return labels;
-  }, [filters]);
+  const removeFilter = useCallback(
+    (key: keyof PokemonFilters) => {
+      setFilters((prev) => ({ ...prev, [key]: null }));
+    },
+    []
+  );
 
   const availableFilterOptions = useMemo(
     () => ({
@@ -132,15 +113,28 @@ export default function PokemonListScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.centeredContainer, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: colors.background, paddingTop: headerHeight },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textMuted, fontFamily: fonts.body }]}>
+          Carregando Pokémons...
+        </Text>
       </View>
     );
   }
 
   if (error && pokemons.length === 0) {
     return (
-      <View style={[styles.centeredContainer, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: colors.background, paddingTop: headerHeight },
+        ]}
+      >
         <Text style={[styles.errorTitle, { color: colors.text, fontFamily: fonts.title }]}>
           Ocorreu um erro
         </Text>
@@ -151,14 +145,21 @@ export default function PokemonListScreen() {
           style={[styles.retryButton, { backgroundColor: colors.primary }]}
           onPress={() => void retry()}
         >
-          <Text style={[styles.retryButtonText, { fontFamily: fonts.labelCaps }]}>Tentar novamente</Text>
+          <Text style={[styles.retryButtonText, { fontFamily: fonts.labelCaps }]}>
+            Tentar novamente
+          </Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background, paddingTop: headerHeight },
+      ]}
+    >
       <View style={styles.headerRow}>
         <SearchBar value={searchQuery} onChangeText={handleSearchChange} />
         <Pressable
@@ -167,8 +168,8 @@ export default function PokemonListScreen() {
           style={[
             styles.filterButton,
             {
-              backgroundColor: activeFiltersCount > 0 ? colors.primary : colors.surface,
-              borderColor: activeFiltersCount > 0 ? colors.primary : colors.outlineVariant,
+              backgroundColor: activeFilterChips.length > 0 ? colors.primary : colors.surface,
+              borderColor: activeFilterChips.length > 0 ? colors.primary : colors.outlineVariant,
               shadowColor: colors.primary,
             },
           ]}
@@ -177,33 +178,47 @@ export default function PokemonListScreen() {
           <Ionicons
             name="funnel"
             size={20}
-            color={activeFiltersCount > 0 ? '#FFFFFF' : colors.text}
+            color={activeFilterChips.length > 0 ? '#FFFFFF' : colors.text}
           />
-          {activeFiltersCount > 0 ? (
+          {activeFilterChips.length > 0 && (
             <View style={[styles.filterBadge, { backgroundColor: '#FFFFFF' }]}>
-              <Text style={[styles.filterBadgeText, { color: colors.primary, fontFamily: fonts.labelCaps }]}>
-                {activeFiltersCount}
+              <Text style={[styles.filterBadgeText, { color: colors.primary }]}>
+                {activeFilterChips.length}
               </Text>
             </View>
-          ) : null}
+          )}
         </Pressable>
       </View>
-      <View style={styles.filtersInfoRow}>
-        <Pressable
-          style={[styles.filtersCta, { backgroundColor: colors.primaryContainer }]}
-          onPress={() => setFilterModalVisible(true)}
+
+      {activeFilterChips.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.activeFiltersRow}
+          contentContainerStyle={styles.activeFiltersContent}
         >
-          <Text style={[styles.filtersCtaText, { fontFamily: fonts.labelCaps }]}>Filtros</Text>
-        </Pressable>
-        <Text
-          numberOfLines={2}
-          style={[styles.filtersInfoText, { color: colors.textMuted, fontFamily: fonts.body }]}
-        >
-          {activeFiltersCount > 0
-            ? `${activeFiltersCount} ativo(s): ${activeFilterLabels.join(' • ')}`
-            : 'Nenhum filtro ativo'}
-        </Text>
-      </View>
+          {activeFilterChips.map((chip) => (
+            <Pressable
+              key={chip.key}
+              style={[styles.activeChip, { backgroundColor: colors.primaryFixed }]}
+              onPress={() => removeFilter(chip.key)}
+            >
+              <Text style={[styles.activeChipText, { color: colors.primary, fontFamily: fonts.bodyMedium }]}>
+                {chip.label}
+              </Text>
+              <Ionicons name="close-circle" size={16} color={colors.primary} />
+            </Pressable>
+          ))}
+          <Pressable
+            style={[styles.clearAllChip, { borderColor: colors.outlineVariant }]}
+            onPress={() => setFilters(INITIAL_FILTERS)}
+          >
+            <Text style={[styles.clearAllText, { color: colors.textMuted, fontFamily: fonts.bodyMedium }]}>
+              Limpar
+            </Text>
+          </Pressable>
+        </ScrollView>
+      )}
 
       <FlatList
         data={displayedPokemons}
@@ -223,44 +238,60 @@ export default function PokemonListScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
+            <Ionicons name="search-outline" size={40} color={colors.outlineVariant} />
             <Text style={[styles.emptyText, { color: colors.textMuted, fontFamily: fonts.body }]}>
-              Nenhum pokémon encontrado
+              {activeFilterChips.length > 0
+                ? 'Nenhum resultado para esses filtros'
+                : 'Nenhum pokémon encontrado'}
             </Text>
+            {activeFilterChips.length > 0 && (
+              <Pressable
+                style={[styles.clearFiltersBtn, { borderColor: colors.outlineVariant }]}
+                onPress={() => setFilters(INITIAL_FILTERS)}
+              >
+                <Text style={[styles.clearFiltersBtnText, { color: colors.primary, fontFamily: fonts.bodyMedium }]}>
+                  Limpar filtros
+                </Text>
+              </Pressable>
+            )}
           </View>
         }
         ListFooterComponent={
           <View style={styles.footerContainer}>
-            {error && pokemons.length > 0 ? (
+            {error && pokemons.length > 0 && (
               <View style={[styles.inlineErrorContainer, { borderColor: colors.outlineVariant }]}>
                 <Text style={[styles.inlineErrorText, { color: colors.textMuted, fontFamily: fonts.body }]}>
                   {error}
                 </Text>
-                <Pressable style={[styles.inlineRetryButton, { backgroundColor: colors.primary }]} onPress={() => void retry()}>
-                  <Text style={[styles.inlineRetryButtonText, { fontFamily: fonts.labelCaps }]}>Tentar de novo</Text>
+                <Pressable
+                  style={[styles.inlineRetryButton, { backgroundColor: colors.primary }]}
+                  onPress={() => void retry()}
+                >
+                  <Text style={[styles.inlineRetryButtonText, { fontFamily: fonts.labelCaps }]}>
+                    Tentar de novo
+                  </Text>
                 </Pressable>
               </View>
-            ) : null}
-
-            {hasMore ? (
+            )}
+            {hasMore && (
               <Pressable
                 style={[
                   styles.loadMoreButton,
-                  {
-                    backgroundColor: colors.primary,
-                    shadowColor: colors.primary,
-                  },
+                  { backgroundColor: colors.primary, shadowColor: colors.primary },
                   loadingMore && styles.loadMoreButtonDisabled,
                 ]}
                 onPress={loadMore}
                 disabled={loadingMore}
               >
                 {loadingMore ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={[styles.loadMoreText, { fontFamily: fonts.labelCaps }]}>Carregar mais</Text>
+                  <Text style={[styles.loadMoreText, { fontFamily: fonts.labelCaps }]}>
+                    Carregar mais
+                  </Text>
                 )}
               </Pressable>
-            ) : null}
+            )}
           </View>
         }
       />
@@ -270,6 +301,7 @@ export default function PokemonListScreen() {
         filters={filters}
         types={ALL_POKEMON_TYPES}
         options={availableFilterOptions}
+        resultCount={displayedPokemons.length}
         onChangeFilters={setFilters}
         onClear={() => setFilters(INITIAL_FILTERS)}
         onClose={() => setFilterModalVisible(false)}
@@ -287,6 +319,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    marginTop: 4,
   },
   headerRow: {
     flexDirection: 'row',
@@ -294,7 +331,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 10,
+    paddingBottom: 8,
   },
   filterButton: {
     width: 48,
@@ -303,10 +340,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOpacity: 0.18,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 3,
   },
   filterBadge: {
     position: 'absolute',
@@ -323,52 +360,64 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  listContent: {
-    paddingTop: 4,
-    flexGrow: 1,
+  activeFiltersRow: {
+    maxHeight: 44,
+    marginBottom: 4,
   },
-  filtersInfoRow: {
+  activeFiltersContent: {
     paddingHorizontal: 20,
-    paddingBottom: 8,
+    gap: 8,
+    alignItems: 'center',
+  },
+  activeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  filtersCta: {
+    gap: 4,
     borderRadius: 999,
-    paddingHorizontal: 14,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  filtersCtaText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    letterSpacing: 1.1,
+  activeChipText: {
+    fontSize: 13,
   },
-  filtersInfoText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
+  clearAllChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  clearAllText: {
+    fontSize: 13,
+  },
+  listContent: {
+    paddingTop: 8,
+    flexGrow: 1,
   },
   columnWrapper: {
     justifyContent: 'space-between',
-    paddingHorizontal: 0,
   },
   loadMoreButton: {
     height: 52,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 0,
     marginTop: 12,
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
     elevation: 4,
   },
+  loadMoreButtonDisabled: {
+    opacity: 0.7,
+  },
+  loadMoreText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+  },
   footerContainer: {
-    marginTop: 12,
+    marginTop: 8,
   },
   inlineErrorContainer: {
     borderWidth: 1,
@@ -394,28 +443,18 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
-  loadMoreButtonDisabled: {
-    opacity: 0.75,
-  },
-  loadMoreText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
   errorTitle: {
     fontSize: 20,
-    marginBottom: 8,
   },
   errorMessage: {
     textAlign: 'center',
-    marginBottom: 16,
     fontSize: 15,
   },
   retryButton: {
     borderRadius: 14,
     paddingHorizontal: 20,
     paddingVertical: 12,
+    marginTop: 4,
   },
   retryButtonText: {
     color: '#FFFFFF',
@@ -427,9 +466,19 @@ const styles = StyleSheet.create({
     minHeight: 240,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 12,
   },
   emptyText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  clearFiltersBtn: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  clearFiltersBtnText: {
+    fontSize: 13,
   },
 });

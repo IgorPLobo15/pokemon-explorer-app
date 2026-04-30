@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   fetchPokemonDetail,
   fetchPokemonList,
+  prefetchImages,
   type PokemonListItem,
 } from '@/services/pokeapi';
 import type { Pokemon } from '@/types';
@@ -60,6 +61,8 @@ export const usePokemonList = (): UsePokemonListResult => {
         setVisiblePokemons(applySearch(nextAllPokemons, queryRef.current));
         setOffset(pageOffset + PAGE_SIZE);
         setHasMore(page.next !== null && details.length > 0);
+
+        prefetchImages(details.map((p) => p.image));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar pokemons');
       } finally {
@@ -116,9 +119,7 @@ export const usePokemonList = (): UsePokemonListResult => {
 
       try {
         const pokemonIndex = await getPokemonIndex();
-        if (searchRequestIdRef.current !== requestId) {
-          return;
-        }
+        if (searchRequestIdRef.current !== requestId) return;
 
         const matchingNames = pokemonIndex
           .map((item) => item.name)
@@ -138,9 +139,7 @@ export const usePokemonList = (): UsePokemonListResult => {
           const fetchedDetails = await Promise.allSettled(
             missingNames.map((name) => fetchPokemonDetail(name))
           );
-          if (searchRequestIdRef.current !== requestId) {
-            return;
-          }
+          if (searchRequestIdRef.current !== requestId) return;
 
           const successfulDetails = fetchedDetails.flatMap((result) =>
             result.status === 'fulfilled' ? [result.value] : []
@@ -152,6 +151,8 @@ export const usePokemonList = (): UsePokemonListResult => {
 
           const mergedList = Array.from(mergedById.values());
           setAllPokemons(mergedList);
+
+          prefetchImages(successfulDetails.map((p) => p.image));
 
           const mergedByName = new Map(mergedList.map((pokemon) => [pokemon.name, pokemon]));
           const searchedList = matchingNames
@@ -168,9 +169,7 @@ export const usePokemonList = (): UsePokemonListResult => {
         setVisiblePokemons(searchedList);
         setError(null);
       } catch {
-        if (searchRequestIdRef.current !== requestId) {
-          return;
-        }
+        if (searchRequestIdRef.current !== requestId) return;
         setError('Não foi possível concluir a busca global agora.');
       }
     },
@@ -181,9 +180,7 @@ export const usePokemonList = (): UsePokemonListResult => {
     let mounted = true;
 
     const initialize = async () => {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       await loadPage(0, false, []);
     };
 

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -10,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Callout, Marker, Region } from 'react-native-maps';
 
 import { useAppColors } from '@/constants/colors';
@@ -33,6 +35,8 @@ const DEFAULT_DELTA = {
 };
 const PINS_COUNT = 10;
 const RADIUS_KM = 5;
+/** Espaço para tab bar flutuante + safe area inferior */
+const TAB_BAR_EXTRA = 100;
 
 const generateRandomPins = (
   center: Coordinate,
@@ -65,6 +69,8 @@ const generateRandomPins = (
 
 export default function MapaScreen() {
   const colors = useAppColors();
+  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView | null>(null);
   const pinsRef = useRef<WildPokemonPin[]>([]);
   const lastFocusedPinIndexRef = useRef<number | null>(null);
@@ -151,9 +157,21 @@ export default function MapaScreen() {
     }, [zoomToRandomPin])
   );
 
+  const mapEdgePadding = {
+    top: headerHeight,
+    right: 12,
+    bottom: Math.max(insets.bottom, 12) + TAB_BAR_EXTRA,
+    left: 12,
+  };
+
   if (loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.centered,
+          { backgroundColor: colors.background, paddingTop: headerHeight },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.infoText, { color: colors.textMuted, fontFamily: fonts.body }]}>
           Obtendo sua localização...
@@ -164,7 +182,12 @@ export default function MapaScreen() {
 
   if (error || !region) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.centered,
+          { backgroundColor: colors.background, paddingTop: headerHeight },
+        ]}
+      >
         <Text style={[styles.errorTitle, { color: colors.text, fontFamily: fonts.title }]}>
           Não foi possível abrir o mapa
         </Text>
@@ -198,6 +221,7 @@ export default function MapaScreen() {
         ref={mapRef}
         style={StyleSheet.absoluteFill}
         initialRegion={region}
+        mapPadding={mapEdgePadding}
         showsUserLocation
         showsMyLocationButton
       >

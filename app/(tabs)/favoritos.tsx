@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
@@ -24,6 +25,7 @@ const capitalize = (value: string) =>
 
 export default function FavoritosScreen() {
   const colors = useAppColors();
+  const headerHeight = useHeaderHeight();
   const favorites = useFavoritesStore((state) => state.favorites);
   const removeFavorite = useFavoritesStore((state) => state.removeFavorite);
   const loadFavorites = useFavoritesStore((state) => state.loadFavorites);
@@ -94,7 +96,11 @@ export default function FavoritosScreen() {
       <View
         style={[
           styles.emptyContainer,
-          { backgroundColor: colors.background, paddingBottom: TAB_BAR_OFFSET },
+          {
+            backgroundColor: colors.background,
+            paddingBottom: TAB_BAR_OFFSET,
+            paddingTop: headerHeight,
+          },
         ]}
       >
         <Text style={styles.emptyEmoji}>💛</Text>
@@ -109,7 +115,12 @@ export default function FavoritosScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background, paddingTop: headerHeight },
+      ]}
+    >
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: colors.text, fontFamily: fonts.headline }]}>
           Meus Favoritos

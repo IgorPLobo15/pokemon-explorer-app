@@ -1,7 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { TypeBadge } from '@/components/TypeBadge';
 import { cardGradientForPrimaryType, useAppColors } from '@/constants/colors';
@@ -17,14 +25,85 @@ interface PokemonCardProps {
 const capitalize = (value: string) =>
   value.length ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : value;
 
+function ShimmerPlaceholder() {
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.timing(shimmerAnim, {
+        toValue: 1,
+        duration: 1200,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [shimmerAnim]);
+
+  const translateX = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-120, 120],
+  });
+
+  return (
+    <View style={shimmerStyles.container}>
+      <Animated.View
+        style={[shimmerStyles.highlight, { transform: [{ translateX }] }]}
+      />
+    </View>
+  );
+}
+
+const shimmerStyles = StyleSheet.create({
+  container: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(236, 238, 241, 0.6)',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  highlight: {
+    width: 80,
+    height: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 16,
+  },
+});
+
 export function PokemonCard({
   pokemon,
   isFavorite,
   onToggleFavorite,
 }: PokemonCardProps) {
   const colors = useAppColors();
-  const [loadingImage, setLoadingImage] = useState(true);
+  const [imageReady, setImageReady] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const currentImageRef = useRef(pokemon.image);
+
+  useEffect(() => {
+    if (currentImageRef.current !== pokemon.image) {
+      currentImageRef.current = pokemon.image;
+      fadeAnim.setValue(0);
+      setImageReady(false);
+      setImageError(false);
+    }
+  }, [pokemon.image, fadeAnim]);
+
+  const handleLoad = useCallback(() => {
+    setImageReady(true);
+    setImageError(false);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
+
+  const handleError = useCallback(() => {
+    setImageReady(false);
+    setImageError(true);
+  }, []);
 
   const primaryType = useMemo(() => {
     const sorted = [...pokemon.types].sort((a, b) => a.slot - b.slot);
@@ -63,37 +142,32 @@ export function PokemonCard({
         style={styles.imageGradient}
       >
         <View style={styles.imageInner}>
-          <Image
-            source={{ uri: pokemon.image }}
-            style={styles.image}
-            resizeMode="contain"
-            onLoadStart={() => {
-              setLoadingImage(true);
-              setImageError(false);
-            }}
-            onLoadEnd={() => setLoadingImage(false)}
-            onError={() => {
-              setLoadingImage(false);
-              setImageError(true);
-            }}
-          />
-          {loadingImage && (
-            <View style={styles.imageOverlay}>
-              <Text style={[styles.imagePlaceholder, { color: colors.textMuted }]}>Carregando...</Text>
-            </View>
-          )}
+          {!imageReady && !imageError && <ShimmerPlaceholder />}
           {imageError && (
-            <View style={styles.imageOverlay}>
-              <Text style={styles.imageFallback}>🖼️</Text>
+            <View style={styles.errorContainer}>
+              <Ionicons name="image-outline" size={28} color={colors.textMuted} />
             </View>
           )}
+          <Animated.View style={[styles.imageFade, { opacity: fadeAnim }]}>
+            <Image
+              key={pokemon.id}
+              source={{ uri: pokemon.image }}
+              style={styles.image}
+              resizeMode="contain"
+              onLoad={handleLoad}
+              onError={handleError}
+            />
+          </Animated.View>
         </View>
       </LinearGradient>
 
       <Text style={[styles.dexId, { color: colors.textMuted, fontFamily: fonts.labelCaps }]}>
         {dexNumber}
       </Text>
-      <Text style={[styles.name, { color: colors.text, fontFamily: fonts.title }]}>
+      <Text
+        numberOfLines={1}
+        style={[styles.name, { color: colors.text, fontFamily: fonts.title }]}
+      >
         {capitalize(pokemon.name)}
       </Text>
 
@@ -139,9 +213,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 8,
   },
+  imageFade: {
+    ...StyleSheet.absoluteFillObject,
+    padding: 8,
+  },
   image: {
     width: '100%',
     height: '100%',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dexId: {
     fontSize: 11,
@@ -158,18 +240,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 'auto',
-  },
-  imageOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.92)',
-  },
-  imagePlaceholder: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  imageFallback: {
-    fontSize: 22,
   },
 });
